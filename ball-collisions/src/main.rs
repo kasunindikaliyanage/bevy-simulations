@@ -2,6 +2,8 @@
 use bevy::{prelude::*};
 use ball::BallPlugin;
 
+use std::collections::HashSet;
+
 mod ball;
 mod components;
 
@@ -26,6 +28,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(BallPlugin)
         .add_startup_system(setup)
+        .insert_resource(HashSet::<Entity>::new())
         .run();
 }
 

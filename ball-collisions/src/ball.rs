@@ -1,12 +1,12 @@
-use std::option;
-
 use crate::{GameTextures, WinSize, components::{Velocity, Position}};
 use bevy::{prelude::*, sprite::{self, collide_aabb::collide}};
 use rand::Rng;
 
+use std::collections::HashSet;
+
 const  BALL_SPRITE_SCALE: f32 = 0.05;
 const  BALL_RADIUS : f32 = 17.;
-const  MAX_NUM_BALLS: u8 = 100;
+const  MAX_NUM_BALLS: u16 = 100;
 const  COL_PADDING:f32 = 0.;
 
 pub struct BallPlugin;
@@ -25,7 +25,6 @@ fn setup_system(mut commands:Commands, win_size:Res<WinSize>, game_textures:Res<
 
     let mut ball_count =0;
     while ball_count <= MAX_NUM_BALLS{
-        print!("Hello");
         let mut rng = rand::thread_rng();
         let p_x = rng.gen_range((-win_w_half + BALL_RADIUS )..(win_w_half -BALL_RADIUS));
         let p_y = rng.gen_range((-win_h_half + BALL_RADIUS)..(win_h_half - BALL_RADIUS));
@@ -49,7 +48,7 @@ fn setup_system(mut commands:Commands, win_size:Res<WinSize>, game_textures:Res<
 }
 
 
-fn ball_movement_system(mut commands:Commands, win_size: Res<WinSize>, mut query : Query<( Entity ,&mut Velocity, &mut Transform)>){
+fn ball_movement_system(mut commands:Commands, win_size: Res<WinSize>, mut balls_map: ResMut<HashSet<Entity>>,mut query : Query<( Entity ,&mut Velocity, &mut Transform)>){
 
     let mut boids = Vec::new();
     
@@ -83,11 +82,18 @@ fn ball_movement_system(mut commands:Commands, win_size: Res<WinSize>, mut query
     for ( e1, mut v1, mut t1) in query.iter_mut() {
         for (e2, _, t2) in boids.iter() {
             if e1 != *e2 {
-                let options = collide(t1.translation, Vec2::new(20.,20.), t2.translation, Vec2::new(20.,20.));
+                let options = 
+                    collide(t1.translation, Vec2::new(20.,20.),t2.translation, Vec2::new(20.,20.));
                 if let Some(_) = options {
-                    // Need to keep a map of already despawn entities and despawn only the ones currently not in the map
-                    commands.entity(e1).despawn();
-                    commands.entity(*e2).despawn();
+                    if(balls_map.get(&e1).is_none()){
+                        balls_map.insert(e1);
+                        commands.entity(e1).despawn();
+                    }
+                    
+                    if(balls_map.get(e2).is_none()){
+                        balls_map.insert(*e2);
+                        commands.entity(*e2).despawn();
+                    }
                 }
             }
         }
