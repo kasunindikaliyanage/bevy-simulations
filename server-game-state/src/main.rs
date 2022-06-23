@@ -17,6 +17,10 @@ struct GameTextures{
     ball: Handle<Image>,
 }
 
+struct NConnection{
+    stream :TcpStream
+}
+
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.04, 0.04, 0.04)))
@@ -48,4 +52,10 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut windows : R
     };
 
     commands.insert_resource(game_textures);
+   
+    let connection = NConnection{
+        stream:TcpStream::connect("127.0.0.1:8888").expect("Could not connect to server")
+    };
+
+    commands.insert_resource(connection);
 }

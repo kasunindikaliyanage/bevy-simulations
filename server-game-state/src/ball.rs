@@ -1,4 +1,4 @@
-use crate::{GameTextures, WinSize, components::{Velocity, Position}};
+use crate::{GameTextures, WinSize, components::{Velocity, Position}, NConnection};
 use bevy::{prelude::*, sprite::{self, collide_aabb::collide}};
 use rand::Rng;
 use std::io::{self, BufRead, BufReader, Write};
@@ -10,6 +10,14 @@ const  BALL_SPRITE_SCALE: f32 = 0.05;
 const  BALL_RADIUS : f32 = 17.;
 const  MAX_NUM_BALLS: u16 = 1;
 const  COL_PADDING:f32 = 0.;
+
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Point {
+    x: f64,
+    y: f64,
+}
 
 pub struct BallPlugin;
 
@@ -52,55 +60,18 @@ fn setup_system(mut commands:Commands, win_size:Res<WinSize>, game_textures:Res<
 
 fn ball_movement_system(mut commands:Commands, win_size: Res<WinSize>, 
     mut balls_map: ResMut<HashSet<Entity>>,
+    connection: Res<NConnection>,
     mut query : Query<( Entity ,&mut Velocity, &mut Transform)>){
 
-    let mut boids = Vec::new();
+    let mut buffer: Vec<u8> = Vec::new();
+    let mut reader = BufReader::new(&connection.stream);
+    reader.read_until(b'\n', &mut buffer).expect("Could not read into buffer");
+    let value = str::from_utf8(&buffer).expect("Could not write buffer as string");
+
+    let deserialized: Point = serde_json::from_str(value).unwrap();
 
     for (mut e, mut v, mut t) in query.iter_mut() {
-        boids.push((e.clone(), v.clone(), t.clone()));
-        t.translation.x += v.x;
-        t.translation.y += v.y;
-
-        let win_w_half = win_size.w /2.;
-        let win_h_half = win_size.h / 2.;
-
-        if t.translation.x <= (-win_w_half + BALL_RADIUS) {
-            v.x *= -1.;
-            t.translation.x +=COL_PADDING;
-        }
-        else if t.translation.x >= (win_w_half - BALL_RADIUS){
-            v.x *= -1.;
-            t.translation.x -=COL_PADDING ;
-        }
-
-        if t.translation.y <= (-win_h_half + BALL_RADIUS){
-            v.y *= -1.;
-            t.translation.y += COL_PADDING;
-        }
-        else if t.translation.y >= (win_h_half - BALL_RADIUS){
-            v.y *= -1.;
-            t.translation.y -= COL_PADDING;
-        }
+        t.translation.x = deserialized.x as f32;
+        t.translation.y = deserialized.y as f32;
     }
-
-    for ( e1, mut v1, mut t1) in query.iter_mut() {
-        for (e2, _, t2) in boids.iter() {
-            if e1 != *e2 {
-                let options = 
-                    collide(t1.translation, Vec2::new(20.,20.),t2.translation, Vec2::new(20.,20.));
-                if let Some(_) = options {
-                    if(balls_map.get(&e1).is_none()){
-                        balls_map.insert(e1);
-                        commands.entity(e1).despawn();
-                    }
-                    
-                    if(balls_map.get(e2).is_none()){
-                        balls_map.insert(*e2);
-                        commands.entity(*e2).despawn();
-                    }
-                }
-            }
-        }
-    }
-
 }

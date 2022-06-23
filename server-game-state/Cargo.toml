@@ -1,5 +1,5 @@
 [package]
-name = "ball-collisions"
+name = "server-game-state"
 version = "0.1.0"
 edition = "2021"
 
