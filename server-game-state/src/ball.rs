@@ -79,7 +79,7 @@ fn ball_movement_system(
 
     let value = str::from_utf8(&buffer).expect("Could not write buffer as string");
 
-    if buffer.len() >= 2 {
+    if buffer.len() >= 10 {
         let deserialized: Point = serde_json::from_str(value).unwrap();
 
         for (mut e, mut v, mut t) in query.iter_mut() {
